@@ -1,388 +1,204 @@
-// Data State yang Mengikat Database PetshopDB
-let db = {
-    kategori: [
-        { IdKategori: 'K001', NamaKategori: 'Makanan Hewan' },
-        { IdKategori: 'K002', NamaKategori: 'Pasir Kucing' },
-        { IdKategori: 'K003', NamaKategori: 'Aksesori' },
-        { IdKategori: 'K004', NamaKategori: 'Vitamin' },
-        { IdKategori: 'K005', NamaKategori: 'Perawatan' }
-    ],
-    barang: [
-        { IdBarang: 'B001', NamaBarang: 'Makanan Kucing 1 Kg', IdKategori: 'K001', HargaBeli: 35000, HargaJual: 45000, Stok: 20, StokMinimum: 5 },
-        { IdBarang: 'B002', NamaBarang: 'Makanan Anjing 1 Kg', IdKategori: 'K001', HargaBeli: 40000, HargaJual: 52000, Stok: 15, StokMinimum: 5 },
-        { IdBarang: 'B003', NamaBarang: 'Pasir Kucing 5 Liter', IdKategori: 'K002', HargaBeli: 18000, HargaJual: 25000, Stok: 12, StokMinimum: 4 },
-        { IdBarang: 'B004', NamaBarang: 'Kalung Kucing', IdKategori: 'K003', HargaBeli: 10000, HargaJual: 16000, Stok: 8, StokMinimum: 3 },
-        { IdBarang: 'B005', NamaBarang: 'Vitamin Kucing', IdKategori: 'K004', HargaBeli: 22000, HargaJual: 30000, Stok: 10, StokMinimum: 3 }
-    ],
-    pengguna: [
-        { IdPengguna: 'U001', NamaPengguna: 'Andi Saputra', Peran: 'Pemilik' },
-        { IdPengguna: 'U002', NamaPengguna: 'Siti Aminah', Peran: 'Kasir' }
-    ],
-    penjualan: [
-        { IdPenjualan: 'J001', TanggalPenjualan: '2026-10-20T09:00:00', IdPengguna: 'U002', IdPelanggan: 'P001', MetodePembayaran: 'Tunai' },
-        { IdPenjualan: 'J002', TanggalPenjualan: '2026-10-20T10:00:00', IdPengguna: 'U002', IdPelanggan: 'P002', MetodePembayaran: 'QRIS' },
-        { IdPenjualan: 'J003', TanggalPenjualan: '2026-10-21T11:00:00', IdPengguna: 'U002', IdPelanggan: 'P003', MetodePembayaran: 'Kartu' },
-        { IdPenjualan: 'J004', TanggalPenjualan: '2026-10-21T13:00:00', IdPengguna: 'U002', IdPelanggan: 'P004', MetodePembayaran: 'Tunai' },
-        { IdPenjualan: 'J005', TanggalPenjualan: '2026-10-22T15:00:00', IdPengguna: 'U002', IdPelanggan: 'P005', MetodePembayaran: 'QRIS' }
-    ],
-    detailPenjualan: [
-        { IdDetail: 'D001', IdPenjualan: 'J001', IdBarang: 'B001', Jumlah: 2, HargaJual: 45000 },
-        { IdDetail: 'D002', IdPenjualan: 'J001', IdBarang: 'B003', Jumlah: 1, HargaJual: 25000 },
-        { IdDetail: 'D003', IdPenjualan: 'J002', IdBarang: 'B002', Jumlah: 1, HargaJual: 52000 },
-        { IdDetail: 'D004', IdPenjualan: 'J002', IdBarang: 'B004', Jumlah: 2, HargaJual: 16000 },
-        { IdDetail: 'D005', IdPenjualan: 'J003', IdBarang: 'B003', Jumlah: 2, HargaJual: 25000 },
-        { IdDetail: 'D006', IdPenjualan: 'J004', IdBarang: 'B005', Jumlah: 1, HargaJual: 30000 },
-        { IdDetail: 'D007', IdPenjualan: 'J005', IdBarang: 'B001', Jumlah: 1, HargaJual: 45000 },
-        { IdDetail: 'D008', IdPenjualan: 'J005', IdBarang: 'B004', Jumlah: 1, HargaJual: 16000 }
-    ]
-};
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Petshop PawPaw - Management System</title>
+    <!-- Chart.js untuk Grafik -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- SheetJS untuk Ekspor Excel -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <style>
+        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; }
+        body { display: flex; background-color: #f4f6f9; color: #333; }
+        aside { width: 250px; background-color: #2c3e50; color: #ecf0f1; height: 100vh; position: fixed; padding: 20px; }
+        aside h1 { font-size: 1.4rem; color: #f39c12; margin-bottom: 5px; }
+        aside span { font-size: 0.8rem; color: #bdc3c7; display: block; margin-bottom: 20px; }
+        nav button { display: block; width: 100%; padding: 12px; background: none; border: none; color: #ecf0f1; text-align: left; cursor: pointer; border-radius: 4px; margin-bottom: 5px; font-weight: bold; }
+        nav button:hover, nav button.active { background-color: #34495e; color: #f39c12; }
+        .user-panel { margin-top: 30px; padding-top: 15px; border-top: 1px solid #34495e; }
+        .user-panel select { width: 100%; padding: 8px; margin-top: 5px; border-radius: 4px; background: #34495e; color: #fff; border: none; }
+        main { margin-left: 250px; padding: 30px; width: calc(100% - 250px); }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
+        .card-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 25px; }
+        .card { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .card h3 { font-size: 1.5rem; color: #2c3e50; margin-top: 10px; }
+        .section { display: none; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        .section.active { display: block; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        table th, table td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        table th { background-color: #f8f9fa; }
+        .btn { padding: 8px 12px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .btn-primary { background-color: #3498db; color: white; }
+        .btn-success { background-color: #2ecc71; color: white; }
+        .btn-danger { background-color: #e74c3c; color: white; }
+        .filter-container { display: flex; gap: 10px; align-items: center; margin-bottom: 15px; }
+        .filter-container input, .filter-container select { padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+        .pos-container { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
 
-let currentUser = db.pengguna[0]; // Default: Pemilik
-let cart = [];
-let chartInstance = null;
+    <!-- Sidebar -->
+    <aside>
+        <div>
+            <h1>Petshop PawPaw</h1>
+            <span>Management System</span>
+        </div>
 
-// Initialize
-document.addEventListener("DOMContentLoaded", () => {
-    initApp();
-});
+        <nav>
+            <button id="nav-dashboard" class="active" onclick="showSection('dashboard')">Dashboard</button>
+            <button id="nav-barang" onclick="showSection('barang')">Data Barang</button>
+            <button id="nav-transaksi" onclick="showSection('transaksi')">Transaksi POS</button>
+            <button id="nav-laporan" onclick="showSection('laporan')">Laporan Penjualan</button>
+        </nav>
 
-function initApp() {
-    applyRolePermissions();
-    renderDashboard();
-    renderBarang();
-    renderPOSBarang();
-    renderPenjualan(db.penjualan);
-    renderChart();
-}
+        <div class="user-panel">
+            <p>Login Sebagai:</p>
+            <select id="select-user" onchange="gantiUser(this.value)">
+                <option value="U001">Andi Saputra (Pemilik)</option>
+                <option value="U002">Siti Aminah (Kasir)</option>
+            </select>
+        </div>
+    </aside>
 
-// 5. Perbedaan Hak Akses (Owner vs Kasir)
-function gantiUser(idUser) {
-    currentUser = db.pengguna.find(u => u.IdPengguna === idUser);
-    applyRolePermissions();
-}
+    <!-- Main Content -->
+    <main>
+        <div class="header">
+            <div>
+                <h2 id="page-title">Dashboard</h2>
+                <p>Selamat datang di panel kontrol Petshop PawPaw!</p>
+            </div>
+        </div>
 
-function applyRolePermissions() {
-    const isKasir = currentUser.Peran === 'Kasir';
+        <!-- Section 1: Dashboard -->
+        <div id="section-dashboard" class="section active">
+            <div class="card-grid">
+                <div class="card">
+                    <span>Total Pendapatan</span>
+                    <h3 id="dash-pendapatan">Rp 0</h3>
+                </div>
+                <div class="card">
+                    <span>Jumlah Transaksi</span>
+                    <h3 id="dash-transaksi">0</h3>
+                </div>
+                <div class="card">
+                    <span>Stok Minimum</span>
+                    <h3 id="dash-stok-minimum">0</h3>
+                </div>
+                <div class="card">
+                    <span>Stok Habis</span>
+                    <h3 id="dash-stok-habis">0</h3>
+                </div>
+            </div>
+            <h3>Barang Paling Laku</h3>
+            <table>
+                <thead>
+                    <tr><th>#</th><th>Kode</th><th>Nama Barang</th><th>Terjual</th></tr>
+                </thead>
+                <tbody id="tbody-terlaku"></tbody>
+            </table>
+        </div>
 
-    // Kasir hanya bisa akses transaksi & tidak bisa akses halaman manajemen lain
-    document.getElementById('nav-dashboard').style.display = isKasir ? 'none' : 'block';
-    document.getElementById('nav-barang').style.display = isKasir ? 'none' : 'block';
-    document.getElementById('nav-laporan').style.display = isKasir ? 'none' : 'block';
-    
-    // Kasir tidak bisa tambah barang/stok
-    document.getElementById('btn-tambah-barang').style.display = isKasir ? 'none' : 'inline-block';
-    
-    // Sembunyikan kolom aksi barang jika kasir
-    document.querySelectorAll('.col-aksi').forEach(el => el.style.display = isKasir ? 'none' : 'table-cell');
+        <!-- Section 2: Data Barang -->
+        <div id="section-barang" class="section">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h3>Daftar Data Barang</h3>
+                <button id="btn-tambah-barang" class="btn btn-primary" onclick="tambahBarangPrompt()">+ Tambah Barang</button>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>No</th>
+                        <th>Kode Barang</th>
+                        <th>Nama Barang</th>
+                        <th>Kategori</th>
+                        <th>Stok</th>
+                        <th>Harga Beli</th>
+                        <th>Harga Jual</th>
+                        <th class="col-aksi">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="tbody-barang"></tbody>
+            </table>
+        </div>
 
-    if (isKasir) {
-        showSection('transaksi');
-    } else {
-        showSection('dashboard');
-    }
-}
+        <!-- Section 3: Transaksi POS -->
+        <div id="section-transaksi" class="section">
+            <div class="pos-container">
+                <div>
+                    <h4>Pilih Barang:</h4>
+                    <table>
+                        <thead>
+                            <tr><th>Kode</th><th>Nama</th><th>Stok</th><th>Harga</th><th>Aksi</th></tr>
+                        </thead>
+                        <tbody id="tbody-pos-barang"></tbody>
+                    </table>
+                </div>
+                <div>
+                    <h4>Keranjang Belanja:</h4>
+                    <table>
+                        <thead>
+                            <tr><th>Nama</th><th>Jumlah</th><th>Subtotal</th></tr>
+                        </thead>
+                        <tbody id="tbody-cart"></tbody>
+                    </table>
+                    <div style="margin-top: 15px;">
+                        <h3>Total: <span id="cart-total">Rp 0</span></h3>
+                        <div style="margin: 10px 0;">
+                            <label>Metode Pembayaran:</label>
+                            <select id="cart-metode">
+                                <option value="Tunai">Tunai</option>
+                                <option value="QRIS">QRIS</option>
+                                <option value="Kartu">Kartu</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-success" style="width: 100%;" onclick="bayarTransaksi()">Proses Bayar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-function showSection(sectionId) {
-    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-    document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+        <!-- Section 4: Laporan Penjualan -->
+        <div id="section-laporan" class="section">
+            <div class="filter-container">
+                <label>Filter Tanggal:</label>
+                <input type="date" id="tgl-awal">
+                <span>s/d</span>
+                <input type="date" id="tgl-akhir">
+                <button class="btn btn-primary" onclick="filterPenjualan()">Cari Data</button>
+                <button class="btn btn-success" onclick="exportToExcel()">Ekspor ke Excel</button>
+            </div>
 
-    document.getElementById(`section-${sectionId}`).classList.add('active');
-    document.getElementById(`nav-${sectionId}`)?.classList.add('active');
-    document.getElementById('page-title').innerText = sectionId.toUpperCase();
-}
+            <table style="margin-bottom: 25px;">
+                <thead>
+                    <tr>
+                        <th>No</th>
+                        <th>Tanggal</th>
+                        <th>No. Transaksi</th>
+                        <th>Pembayaran</th>
+                        <th>Total</th>
+                    </tr>
+                </thead>
+                <tbody id="tbody-penjualan"></tbody>
+            </table>
 
-// 1. Tampilan Dashboard Dinamis
-function renderDashboard() {
-    let totalPendapatan = 0;
-    db.detailPenjualan.forEach(d => totalPendapatan += (d.Jumlah * d.HargaJual));
+            <h3>Grafik Penjualan</h3>
+            <div class="filter-container" style="margin-top: 10px;">
+                <label>Tipe Grafik:</label>
+                <select id="filter-grafik" onchange="renderChart()">
+                    <option value="harian">Harian</option>
+                    <option value="bulanan">Bulanan</option>
+                    <option value="tahunan">Tahunan</option>
+                </select>
+            </div>
+            <div style="height: 300px;">
+                <canvas id="salesChart"></canvas>
+            </div>
+        </div>
+    </main>
 
-    document.getElementById('dash-pendapatan').innerText = `Rp ${totalPendapatan.toLocaleString('id-ID')}`;
-    document.getElementById('dash-transaksi').innerText = db.penjualan.length;
-    document.getElementById('dash-stok-minimum').innerText = db.barang.filter(b => b.Stok <= b.StokMinimum && b.Stok > 0).length;
-    document.getElementById('dash-stok-habis').innerText = db.barang.filter(b => b.Stok === 0).length;
-
-    // Barang Terlaku
-    let rekapTerjual = {};
-    db.detailPenjualan.forEach(d => {
-        rekapTerjual[d.IdBarang] = (rekapTerjual[d.IdBarang] || 0) + d.Jumlah;
-    });
-
-    let sorted = Object.keys(rekapTerjual).map(key => {
-        return { IdBarang: key, Jumlah: rekapTerjual[key] };
-    }).sort((a, b) => b.Jumlah - a.Jumlah);
-
-    const tbody = document.getElementById('tbody-terlaku');
-    tbody.innerHTML = '';
-    sorted.slice(0, 5).forEach((item, index) => {
-        let b = db.barang.find(x => x.IdBarang === item.IdBarang);
-        tbody.innerHTML += `<tr><td>${index + 1}</td><td>${b.IdBarang}</td><td>${b.NamaBarang}</td><td>${item.Jumlah}</td></tr>`;
-    });
-}
-
-// 2. Data Barang (Ada Kode Barang & Fitur Aksi Edit/Hapus)
-function renderBarang() {
-    const tbody = document.getElementById('tbody-barang');
-    tbody.innerHTML = '';
-
-    db.barang.forEach((b, index) => {
-        let kat = db.kategori.find(k => k.IdKategori === b.IdKategori);
-        let aksiHTML = currentUser.Peran === 'Pemilik' ? `
-            <button class="btn btn-primary" onclick="editBarang('${b.IdBarang}')">Edit</button>
-            <button class="btn btn-danger" onclick="hapusBarang('${b.IdBarang}')">Hapus</button>
-        ` : '-';
-
-        tbody.innerHTML += `
-            <tr>
-                <td>${index + 1}</td>
-                <td><strong>${b.IdBarang}</strong></td>
-                <td>${b.NamaBarang}</td>
-                <td>${kat ? kat.NamaKategori : '-'}</td>
-                <td>${b.Stok}</td>
-                <td>Rp ${b.HargaBeli.toLocaleString('id-ID')}</td>
-                <td>Rp ${b.HargaJual.toLocaleString('id-ID')}</td>
-                <td class="col-aksi">${aksiHTML}</td>
-            </tr>
-        `;
-    });
-}
-
-function tambahBarangPrompt() {
-    if (currentUser.Peran === 'Kasir') return;
-    const nama = prompt("Nama Barang:");
-    const hargaBeli = parseInt(prompt("Harga Beli:") || 0);
-    const hargaJual = parseInt(prompt("Harga Jual:") || 0);
-    const stok = parseInt(prompt("Stok Awal:") || 0);
-
-    if (nama) {
-        const idBaru = 'B' + String(db.barang.length + 1).padStart(3, '0');
-        db.barang.push({ IdBarang: idBaru, NamaBarang: nama, IdKategori: 'K001', HargaBeli: hargaBeli, HargaJual: hargaJual, Stok: stok, StokMinimum: 5 });
-        renderBarang();
-        renderPOSBarang();
-        renderDashboard();
-    }
-}
-
-function editBarang(id) {
-    if (currentUser.Peran === 'Kasir') return;
-    let b = db.barang.find(x => x.IdBarang === id);
-    let namaBaru = prompt("Edit Nama Barang:", b.NamaBarang);
-    let stokBaru = prompt("Edit Stok Barang:", b.Stok);
-
-    if (namaBaru && stokBaru !== null) {
-        b.NamaBarang = namaBaru;
-        b.Stok = parseInt(stokBaru);
-        renderBarang();
-        renderPOSBarang();
-        renderDashboard();
-    }
-}
-
-function hapusBarang(id) {
-    if (currentUser.Peran === 'Kasir') return;
-    if (confirm("Yakin ingin menghapus barang ini?")) {
-        db.barang = db.barang.filter(x => x.IdBarang !== id);
-        renderBarang();
-        renderPOSBarang();
-        renderDashboard();
-    }
-}
-
-// Transaksi POS & Otomatisasi Stok
-function renderPOSBarang() {
-    const tbody = document.getElementById('tbody-pos-barang');
-    tbody.innerHTML = '';
-    db.barang.forEach(b => {
-        tbody.innerHTML += `
-            <tr>
-                <td>${b.IdBarang}</td>
-                <td>${b.NamaBarang}</td>
-                <td>${b.Stok}</td>
-                <td>Rp ${b.HargaJual.toLocaleString('id-ID')}</td>
-                <td><button class="btn btn-success" onclick="addToCart('${b.IdBarang}')">+</button></td>
-            </tr>
-        `;
-    });
-}
-
-function addToCart(id) {
-    let b = db.barang.find(x => x.IdBarang === id);
-    if (b.Stok <= 0) {
-        alert("Stok Habis!");
-        return;
-    }
-
-    let cartItem = cart.find(c => c.IdBarang === id);
-    if (cartItem) {
-        if (cartItem.Jumlah + 1 > b.Stok) {
-            alert("Jumlah melebihi stok!");
-            return;
-        }
-        cartItem.Jumlah++;
-    } else {
-        cart.push({ IdBarang: b.IdBarang, NamaBarang: b.NamaBarang, HargaJual: b.HargaJual, Jumlah: 1 });
-    }
-    renderCart();
-}
-
-function renderCart() {
-    const tbody = document.getElementById('tbody-cart');
-    tbody.innerHTML = '';
-    let total = 0;
-
-    cart.forEach(c => {
-        let subtotal = c.Jumlah * c.HargaJual;
-        total += subtotal;
-        tbody.innerHTML += `
-            <tr>
-                <td>${c.NamaBarang}</td>
-                <td>${c.Jumlah}</td>
-                <td>Rp ${subtotal.toLocaleString('id-ID')}</td>
-            </tr>
-        `;
-    });
-
-    document.getElementById('cart-total').innerText = `Rp ${total.toLocaleString('id-ID')}`;
-}
-
-function bayarTransaksi() {
-    if (cart.length === 0) {
-        alert("Keranjang masih kosong!");
-        return;
-    }
-
-    const idPenjualanBaru = 'J' + String(db.penjualan.length + 1).padStart(3, '0');
-    const metode = document.getElementById('cart-metode').value;
-
-    // Trigger Otomatisasi Stok & Transaksi
-    cart.forEach(item => {
-        // Kurangi stok
-        let b = db.barang.find(x => x.IdBarang === item.IdBarang);
-        b.Stok -= item.Jumlah;
-
-        // Tambah detail penjualan
-        db.detailPenjualan.push({
-            IdDetail: 'D' + String(db.detailPenjualan.length + 1).padStart(3, '0'),
-            IdPenjualan: idPenjualanBaru,
-            IdBarang: item.IdBarang,
-            Jumlah: item.Jumlah,
-            HargaJual: item.HargaJual
-        });
-    });
-
-    db.penjualan.push({
-        IdPenjualan: idPenjualanBaru,
-        TanggalPenjualan: new Date().toISOString(),
-        IdPengguna: currentUser.IdPengguna,
-        IdPelanggan: 'P001',
-        MetodePembayaran: metode
-    });
-
-    alert("Transaksi Berhasil Diproses!");
-    cart = [];
-    renderCart();
-    renderBarang();
-    renderPOSBarang();
-    renderDashboard();
-    renderPenjualan(db.penjualan);
-    renderChart();
-}
-
-// 3 & 7. Filter Tanggal & Hapus Aksi di Transaksi
-function renderPenjualan(dataPenjualan) {
-    const tbody = document.getElementById('tbody-penjualan');
-    tbody.innerHTML = '';
-
-    dataPenjualan.forEach((p, index) => {
-        let total = 0;
-        db.detailPenjualan.filter(d => d.IdPenjualan === p.IdPenjualan).forEach(d => {
-            total += (d.Jumlah * d.HargaJual);
-        });
-
-        // Tanpa kolom Aksi sesuai instruksi
-        tbody.innerHTML += `
-            <tr>
-                <td>${index + 1}</td>
-                <td>${new Date(p.TanggalPenjualan).toLocaleDateString('id-ID')}</td>
-                <td>${p.IdPenjualan}</td>
-                <td>${p.MetodePembayaran || '-'}</td>
-                <td>Rp ${total.toLocaleString('id-ID')}</td>
-            </tr>
-        `;
-    });
-}
-
-function filterPenjualan() {
-    const tglAwal = document.getElementById('tgl-awal').value;
-    const tglAkhir = document.getElementById('tgl-akhir').value;
-
-    if (!tglAwal || !tglAkhir) {
-        alert("Pilih tanggal awal dan tanggal akhir!");
-        return;
-    }
-
-    const filtered = db.penjualan.filter(p => {
-        const t = p.TanggalPenjualan.split('T')[0];
-        return t >= tglAwal && t <= tglAkhir;
-    });
-
-    renderPenjualan(filtered);
-}
-
-// 4. Grafik Harian, Bulanan, Tahunan & Ekspor Excel
-function renderChart() {
-    const tipe = document.getElementById('filter-grafik').value;
-    const ctx = document.getElementById('salesChart').getContext('2d');
-
-    let labels = [];
-    let dataValues = [];
-
-    if (tipe === 'harian') {
-        labels = ['20 Oct', '21 Oct', '22 Oct'];
-        dataValues = [182000, 80000, 106000];
-    } else if (tipe === 'bulanan') {
-        labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct'];
-        dataValues = [1200000, 1500000, 1100000, 1800000, 2000000, 1700000, 2200000, 2100000, 1900000, 368000];
-    } else if (tipe === 'tahunan') {
-        labels = ['2024', '2025', '2026'];
-        dataValues = [15000000, 22000000, 17468000];
-    }
-
-    if (chartInstance) chartInstance.destroy();
-
-    chartInstance = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: 'Penjualan (Rp)',
-                data: dataValues,
-                backgroundColor: '#3498db'
-            }]
-        },
-        options: { responsive: true, maintainAspectRatio: false }
-    });
-}
-
-function exportToExcel() {
-    let excelData = [];
-    db.penjualan.forEach((p, idx) => {
-        let total = 0;
-        db.detailPenjualan.filter(d => d.IdPenjualan === p.IdPenjualan).forEach(d => {
-            total += (d.Jumlah * d.HargaJual);
-        });
-
-        excelData.push({
-            No: idx + 1,
-            "Tanggal Penjualan": p.TanggalPenjualan,
-            "No. Transaksi": p.IdPenjualan,
-            "Metode Pembayaran": p.MetodePembayaran,
-            "Total Penjualan": total
-        });
-    });
-
-    const worksheet = XLSX.utils.json_to_sheet(excelData);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Laporan Penjualan");
-
-    XLSX.writeFile(workbook, "Laporan_Penjualan_Petshop_PawPaw.xlsx");
-}
+    <script src="script.js"></script>
+</body>
+</html>
