@@ -1,694 +1,388 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PetShop System - Online UI/UX</title>
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- FontAwesome & Google Fonts -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    fontFamily: { sans: ['Inter', 'sans-serif'] },
-                    colors: {
-                        brand: {
-                            50: '#eff6ff',
-                            100: '#dbeafe',
-                            500: '#3b82f6',
-                            600: '#2563eb',
-                            700: '#1d4ed8',
-                        }
-                    }
-                }
-            }
+// Data State yang Mengikat Database PetshopDB
+let db = {
+    kategori: [
+        { IdKategori: 'K001', NamaKategori: 'Makanan Hewan' },
+        { IdKategori: 'K002', NamaKategori: 'Pasir Kucing' },
+        { IdKategori: 'K003', NamaKategori: 'Aksesori' },
+        { IdKategori: 'K004', NamaKategori: 'Vitamin' },
+        { IdKategori: 'K005', NamaKategori: 'Perawatan' }
+    ],
+    barang: [
+        { IdBarang: 'B001', NamaBarang: 'Makanan Kucing 1 Kg', IdKategori: 'K001', HargaBeli: 35000, HargaJual: 45000, Stok: 20, StokMinimum: 5 },
+        { IdBarang: 'B002', NamaBarang: 'Makanan Anjing 1 Kg', IdKategori: 'K001', HargaBeli: 40000, HargaJual: 52000, Stok: 15, StokMinimum: 5 },
+        { IdBarang: 'B003', NamaBarang: 'Pasir Kucing 5 Liter', IdKategori: 'K002', HargaBeli: 18000, HargaJual: 25000, Stok: 12, StokMinimum: 4 },
+        { IdBarang: 'B004', NamaBarang: 'Kalung Kucing', IdKategori: 'K003', HargaBeli: 10000, HargaJual: 16000, Stok: 8, StokMinimum: 3 },
+        { IdBarang: 'B005', NamaBarang: 'Vitamin Kucing', IdKategori: 'K004', HargaBeli: 22000, HargaJual: 30000, Stok: 10, StokMinimum: 3 }
+    ],
+    pengguna: [
+        { IdPengguna: 'U001', NamaPengguna: 'Andi Saputra', Peran: 'Pemilik' },
+        { IdPengguna: 'U002', NamaPengguna: 'Siti Aminah', Peran: 'Kasir' }
+    ],
+    penjualan: [
+        { IdPenjualan: 'J001', TanggalPenjualan: '2026-10-20T09:00:00', IdPengguna: 'U002', IdPelanggan: 'P001', MetodePembayaran: 'Tunai' },
+        { IdPenjualan: 'J002', TanggalPenjualan: '2026-10-20T10:00:00', IdPengguna: 'U002', IdPelanggan: 'P002', MetodePembayaran: 'QRIS' },
+        { IdPenjualan: 'J003', TanggalPenjualan: '2026-10-21T11:00:00', IdPengguna: 'U002', IdPelanggan: 'P003', MetodePembayaran: 'Kartu' },
+        { IdPenjualan: 'J004', TanggalPenjualan: '2026-10-21T13:00:00', IdPengguna: 'U002', IdPelanggan: 'P004', MetodePembayaran: 'Tunai' },
+        { IdPenjualan: 'J005', TanggalPenjualan: '2026-10-22T15:00:00', IdPengguna: 'U002', IdPelanggan: 'P005', MetodePembayaran: 'QRIS' }
+    ],
+    detailPenjualan: [
+        { IdDetail: 'D001', IdPenjualan: 'J001', IdBarang: 'B001', Jumlah: 2, HargaJual: 45000 },
+        { IdDetail: 'D002', IdPenjualan: 'J001', IdBarang: 'B003', Jumlah: 1, HargaJual: 25000 },
+        { IdDetail: 'D003', IdPenjualan: 'J002', IdBarang: 'B002', Jumlah: 1, HargaJual: 52000 },
+        { IdDetail: 'D004', IdPenjualan: 'J002', IdBarang: 'B004', Jumlah: 2, HargaJual: 16000 },
+        { IdDetail: 'D005', IdPenjualan: 'J003', IdBarang: 'B003', Jumlah: 2, HargaJual: 25000 },
+        { IdDetail: 'D006', IdPenjualan: 'J004', IdBarang: 'B005', Jumlah: 1, HargaJual: 30000 },
+        { IdDetail: 'D007', IdPenjualan: 'J005', IdBarang: 'B001', Jumlah: 1, HargaJual: 45000 },
+        { IdDetail: 'D008', IdPenjualan: 'J005', IdBarang: 'B004', Jumlah: 1, HargaJual: 16000 }
+    ]
+};
+
+let currentUser = db.pengguna[0]; // Default: Pemilik
+let cart = [];
+let chartInstance = null;
+
+// Initialize
+document.addEventListener("DOMContentLoaded", () => {
+    initApp();
+});
+
+function initApp() {
+    applyRolePermissions();
+    renderDashboard();
+    renderBarang();
+    renderPOSBarang();
+    renderPenjualan(db.penjualan);
+    renderChart();
+}
+
+// 5. Perbedaan Hak Akses (Owner vs Kasir)
+function gantiUser(idUser) {
+    currentUser = db.pengguna.find(u => u.IdPengguna === idUser);
+    applyRolePermissions();
+}
+
+function applyRolePermissions() {
+    const isKasir = currentUser.Peran === 'Kasir';
+
+    // Kasir hanya bisa akses transaksi & tidak bisa akses halaman manajemen lain
+    document.getElementById('nav-dashboard').style.display = isKasir ? 'none' : 'block';
+    document.getElementById('nav-barang').style.display = isKasir ? 'none' : 'block';
+    document.getElementById('nav-laporan').style.display = isKasir ? 'none' : 'block';
+    
+    // Kasir tidak bisa tambah barang/stok
+    document.getElementById('btn-tambah-barang').style.display = isKasir ? 'none' : 'inline-block';
+    
+    // Sembunyikan kolom aksi barang jika kasir
+    document.querySelectorAll('.col-aksi').forEach(el => el.style.display = isKasir ? 'none' : 'table-cell');
+
+    if (isKasir) {
+        showSection('transaksi');
+    } else {
+        showSection('dashboard');
+    }
+}
+
+function showSection(sectionId) {
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+
+    document.getElementById(`section-${sectionId}`).classList.add('active');
+    document.getElementById(`nav-${sectionId}`)?.classList.add('active');
+    document.getElementById('page-title').innerText = sectionId.toUpperCase();
+}
+
+// 1. Tampilan Dashboard Dinamis
+function renderDashboard() {
+    let totalPendapatan = 0;
+    db.detailPenjualan.forEach(d => totalPendapatan += (d.Jumlah * d.HargaJual));
+
+    document.getElementById('dash-pendapatan').innerText = `Rp ${totalPendapatan.toLocaleString('id-ID')}`;
+    document.getElementById('dash-transaksi').innerText = db.penjualan.length;
+    document.getElementById('dash-stok-minimum').innerText = db.barang.filter(b => b.Stok <= b.StokMinimum && b.Stok > 0).length;
+    document.getElementById('dash-stok-habis').innerText = db.barang.filter(b => b.Stok === 0).length;
+
+    // Barang Terlaku
+    let rekapTerjual = {};
+    db.detailPenjualan.forEach(d => {
+        rekapTerjual[d.IdBarang] = (rekapTerjual[d.IdBarang] || 0) + d.Jumlah;
+    });
+
+    let sorted = Object.keys(rekapTerjual).map(key => {
+        return { IdBarang: key, Jumlah: rekapTerjual[key] };
+    }).sort((a, b) => b.Jumlah - a.Jumlah);
+
+    const tbody = document.getElementById('tbody-terlaku');
+    tbody.innerHTML = '';
+    sorted.slice(0, 5).forEach((item, index) => {
+        let b = db.barang.find(x => x.IdBarang === item.IdBarang);
+        tbody.innerHTML += `<tr><td>${index + 1}</td><td>${b.IdBarang}</td><td>${b.NamaBarang}</td><td>${item.Jumlah}</td></tr>`;
+    });
+}
+
+// 2. Data Barang (Ada Kode Barang & Fitur Aksi Edit/Hapus)
+function renderBarang() {
+    const tbody = document.getElementById('tbody-barang');
+    tbody.innerHTML = '';
+
+    db.barang.forEach((b, index) => {
+        let kat = db.kategori.find(k => k.IdKategori === b.IdKategori);
+        let aksiHTML = currentUser.Peran === 'Pemilik' ? `
+            <button class="btn btn-primary" onclick="editBarang('${b.IdBarang}')">Edit</button>
+            <button class="btn btn-danger" onclick="hapusBarang('${b.IdBarang}')">Hapus</button>
+        ` : '-';
+
+        tbody.innerHTML += `
+            <tr>
+                <td>${index + 1}</td>
+                <td><strong>${b.IdBarang}</strong></td>
+                <td>${b.NamaBarang}</td>
+                <td>${kat ? kat.NamaKategori : '-'}</td>
+                <td>${b.Stok}</td>
+                <td>Rp ${b.HargaBeli.toLocaleString('id-ID')}</td>
+                <td>Rp ${b.HargaJual.toLocaleString('id-ID')}</td>
+                <td class="col-aksi">${aksiHTML}</td>
+            </tr>
+        `;
+    });
+}
+
+function tambahBarangPrompt() {
+    if (currentUser.Peran === 'Kasir') return;
+    const nama = prompt("Nama Barang:");
+    const hargaBeli = parseInt(prompt("Harga Beli:") || 0);
+    const hargaJual = parseInt(prompt("Harga Jual:") || 0);
+    const stok = parseInt(prompt("Stok Awal:") || 0);
+
+    if (nama) {
+        const idBaru = 'B' + String(db.barang.length + 1).padStart(3, '0');
+        db.barang.push({ IdBarang: idBaru, NamaBarang: nama, IdKategori: 'K001', HargaBeli: hargaBeli, HargaJual: hargaJual, Stok: stok, StokMinimum: 5 });
+        renderBarang();
+        renderPOSBarang();
+        renderDashboard();
+    }
+}
+
+function editBarang(id) {
+    if (currentUser.Peran === 'Kasir') return;
+    let b = db.barang.find(x => x.IdBarang === id);
+    let namaBaru = prompt("Edit Nama Barang:", b.NamaBarang);
+    let stokBaru = prompt("Edit Stok Barang:", b.Stok);
+
+    if (namaBaru && stokBaru !== null) {
+        b.NamaBarang = namaBaru;
+        b.Stok = parseInt(stokBaru);
+        renderBarang();
+        renderPOSBarang();
+        renderDashboard();
+    }
+}
+
+function hapusBarang(id) {
+    if (currentUser.Peran === 'Kasir') return;
+    if (confirm("Yakin ingin menghapus barang ini?")) {
+        db.barang = db.barang.filter(x => x.IdBarang !== id);
+        renderBarang();
+        renderPOSBarang();
+        renderDashboard();
+    }
+}
+
+// Transaksi POS & Otomatisasi Stok
+function renderPOSBarang() {
+    const tbody = document.getElementById('tbody-pos-barang');
+    tbody.innerHTML = '';
+    db.barang.forEach(b => {
+        tbody.innerHTML += `
+            <tr>
+                <td>${b.IdBarang}</td>
+                <td>${b.NamaBarang}</td>
+                <td>${b.Stok}</td>
+                <td>Rp ${b.HargaJual.toLocaleString('id-ID')}</td>
+                <td><button class="btn btn-success" onclick="addToCart('${b.IdBarang}')">+</button></td>
+            </tr>
+        `;
+    });
+}
+
+function addToCart(id) {
+    let b = db.barang.find(x => x.IdBarang === id);
+    if (b.Stok <= 0) {
+        alert("Stok Habis!");
+        return;
+    }
+
+    let cartItem = cart.find(c => c.IdBarang === id);
+    if (cartItem) {
+        if (cartItem.Jumlah + 1 > b.Stok) {
+            alert("Jumlah melebihi stok!");
+            return;
         }
-    </script>
-    <style>
-        .sidebar-item-active {
-            background-color: #2563eb;
-            color: white !important;
-            font-weight: 600;
-        }
-    </style>
-</head>
-<body class="bg-slate-100 text-slate-700 font-sans antialiased min-h-screen flex">
+        cartItem.Jumlah++;
+    } else {
+        cart.push({ IdBarang: b.IdBarang, NamaBarang: b.NamaBarang, HargaJual: b.HargaJual, Jumlah: 1 });
+    }
+    renderCart();
+}
 
-    <!-- SIDEBAR (PERSIS FIGMA) -->
-    <aside class="w-64 bg-white border-r border-slate-200 flex flex-col justify-between shrink-0 min-h-screen sticky top-0 h-screen z-30">
-        <div>
-            <!-- Logo PetShop -->
-            <div class="p-6 flex items-center space-x-3 border-b border-slate-100">
-                <div class="w-10 h-10 bg-brand-600 rounded-xl flex items-center justify-center text-white text-xl shadow-md shadow-brand-500/20">
-                    <i class="fa-solid fa-paw"></i>
-                </div>
-                <div>
-                    <h1 class="font-bold text-lg text-slate-800 leading-none">PetShop</h1>
-                    <span class="text-[10px] text-slate-400">Management System</span>
-                </div>
-            </div>
+function renderCart() {
+    const tbody = document.getElementById('tbody-cart');
+    tbody.innerHTML = '';
+    let total = 0;
 
-            <!-- Navigation Links -->
-            <nav class="p-4 space-y-1 text-sm font-medium">
-                <button onclick="switchTab('dashboard')" id="nav-dashboard" class="sidebar-btn sidebar-item-active w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-600 hover:bg-slate-50 transition-all">
-                    <i class="fa-solid fa-border-all text-lg w-6"></i><span>Dashboard</span>
-                </button>
-                <button onclick="switchTab('barang')" id="nav-barang" class="sidebar-btn w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-600 hover:bg-slate-50 transition-all">
-                    <i class="fa-solid fa-box text-lg w-6"></i><span>Data Barang</span>
-                </button>
-                <button onclick="switchTab('transaksi')" id="nav-transaksi" class="sidebar-btn w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-600 hover:bg-slate-50 transition-all">
-                    <i class="fa-solid fa-cart-shopping text-lg w-6"></i><span>Transaksi Penjualan</span>
-                </button>
-                <button onclick="switchTab('persediaan')" id="nav-persediaan" class="sidebar-btn w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-600 hover:bg-slate-50 transition-all">
-                    <i class="fa-solid fa-boxes-stacked text-lg w-6"></i><span>Persediaan</span>
-                </button>
-                <button onclick="switchTab('laporan')" id="nav-laporan" class="sidebar-btn w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-600 hover:bg-slate-50 transition-all">
-                    <i class="fa-solid fa-chart-simple text-lg w-6"></i><span>Laporan</span>
-                </button>
-            </nav>
-        </div>
+    cart.forEach(c => {
+        let subtotal = c.Jumlah * c.HargaJual;
+        total += subtotal;
+        tbody.innerHTML += `
+            <tr>
+                <td>${c.NamaBarang}</td>
+                <td>${c.Jumlah}</td>
+                <td>Rp ${subtotal.toLocaleString('id-ID')}</td>
+            </tr>
+        `;
+    });
 
-        <!-- User Profile & Logout -->
-        <div class="p-4 border-t border-slate-100 space-y-3">
-            <div class="flex items-center space-x-3 px-2">
-                <div class="w-9 h-9 rounded-full bg-brand-100 text-brand-600 flex items-center justify-center font-bold text-sm">
-                    A
-                </div>
-                <div class="flex-1 min-w-0">
-                    <p class="text-sm font-bold text-slate-800 truncate" id="user-display-name">Andi Saputra</p>
-                    <p class="text-xs text-slate-400 truncate" id="user-display-role">Pemilik / Admin</p>
-                </div>
-            </div>
-            <select id="role-switcher" onchange="changeRole(this.value)" class="w-full text-xs border border-slate-200 rounded-lg p-2 bg-slate-50 text-slate-600 focus:outline-none">
-                <option value="U001">Ganti Login: Andi (Pemilik)</option>
-                <option value="U002">Ganti Login: Siti (Kasir)</option>
-            </select>
-            <button class="w-full flex items-center space-x-2 text-xs text-rose-500 font-semibold px-2 py-1.5 hover:bg-rose-50 rounded-lg transition-colors">
-                <i class="fa-solid fa-right-from-bracket"></i><span>Logout</span>
-            </button>
-        </div>
-    </aside>
+    document.getElementById('cart-total').innerText = `Rp ${total.toLocaleString('id-ID')}`;
+}
 
-    <!-- MAIN CONTENT AREA -->
-    <main class="flex-1 p-8 overflow-y-auto">
+function bayarTransaksi() {
+    if (cart.length === 0) {
+        alert("Keranjang masih kosong!");
+        return;
+    }
 
-        <!-- HEADER BAR -->
-        <header class="flex justify-between items-center mb-6">
-            <div>
-                <h2 id="page-title" class="text-2xl font-bold text-slate-800">Dashboard</h2>
-                <p class="text-xs text-slate-400" id="page-subtitle">Selamat datang kembali di panel kontrol PetShop!</p>
-            </div>
-            <div class="flex items-center space-x-3">
-                <div class="relative">
-                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-sm"></i>
-                    <input type="text" placeholder="Cari nama barang..." class="pl-9 pr-4 py-2 text-xs border border-slate-200 rounded-xl w-64 bg-white focus:outline-none focus:ring-2 focus:ring-brand-500">
-                </div>
-                <button onclick="openPosModal()" class="bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold px-4 py-2.5 rounded-xl flex items-center space-x-2 shadow-md shadow-brand-500/20">
-                    <i class="fa-solid fa-plus"></i><span>+ Transaksi Baru</span>
-                </button>
-            </div>
-        </header>
+    const idPenjualanBaru = 'J' + String(db.penjualan.length + 1).padStart(3, '0');
+    const metode = document.getElementById('cart-metode').value;
 
-        <!-- PAGE 1: DASHBOARD (PERSIS FIGMA) -->
-        <div id="sec-dashboard" class="space-y-6">
-            <!-- Welcome Banner -->
-            <div class="bg-brand-50 border border-brand-100 rounded-2xl p-4 flex justify-between items-center">
-                <div class="flex items-center space-x-3">
-                    <div class="w-8 h-8 rounded-full bg-brand-600 text-white flex items-center justify-center text-xs">
-                        <i class="fa-solid fa-bell"></i>
-                    </div>
-                    <div>
-                        <h4 class="font-bold text-slate-800 text-sm">Selamat datang, Admin!</h4>
-                        <p class="text-xs text-slate-500">Berikut ringkasan aktivitas toko Petshop hari ini.</p>
-                    </div>
-                </div>
-            </div>
+    // Trigger Otomatisasi Stok & Transaksi
+    cart.forEach(item => {
+        // Kurangi stok
+        let b = db.barang.find(x => x.IdBarang === item.IdBarang);
+        b.Stok -= item.Jumlah;
 
-            <!-- 4 Stat Cards (Warna-Warni Sesuai Figma) -->
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <!-- Total Pendapatan (Biru Muda / Toska) -->
-                <div class="bg-emerald-50 border border-emerald-100 p-5 rounded-2xl shadow-sm">
-                    <div class="flex justify-between items-start mb-2">
-                        <span class="text-xs text-emerald-600 font-semibold">Total Pendapatan</span>
-                        <div class="w-8 h-8 rounded-lg bg-emerald-500 text-white flex items-center justify-center text-xs"><i class="fa-solid fa-wallet"></i></div>
-                    </div>
-                    <h3 class="text-2xl font-bold text-slate-800" id="dash-omzet">Rp 899.000</h3>
-                    <span class="text-[10px] text-emerald-600 font-medium">↑ +12% dari minggu lalu</span>
-                </div>
+        // Tambah detail penjualan
+        db.detailPenjualan.push({
+            IdDetail: 'D' + String(db.detailPenjualan.length + 1).padStart(3, '0'),
+            IdPenjualan: idPenjualanBaru,
+            IdBarang: item.IdBarang,
+            Jumlah: item.Jumlah,
+            HargaJual: item.HargaJual
+        });
+    });
 
-                <!-- Total Transaksi (Biru) -->
-                <div class="bg-brand-50 border border-brand-100 p-5 rounded-2xl shadow-sm">
-                    <div class="flex justify-between items-start mb-2">
-                        <span class="text-xs text-brand-600 font-semibold">Jumlah Transaksi</span>
-                        <div class="w-8 h-8 rounded-lg bg-brand-600 text-white flex items-center justify-center text-xs"><i class="fa-solid fa-cart-shopping"></i></div>
-                    </div>
-                    <h3 class="text-2xl font-bold text-slate-800" id="dash-count">7</h3>
-                    <span class="text-[10px] text-brand-600 font-medium">Transaksi Selesai</span>
-                </div>
+    db.penjualan.push({
+        IdPenjualan: idPenjualanBaru,
+        TanggalPenjualan: new Date().toISOString(),
+        IdPengguna: currentUser.IdPengguna,
+        IdPelanggan: 'P001',
+        MetodePembayaran: metode
+    });
 
-                <!-- Stok Minimum (Kuning/Orange) -->
-                <div class="bg-amber-50 border border-amber-100 p-5 rounded-2xl shadow-sm">
-                    <div class="flex justify-between items-start mb-2">
-                        <span class="text-xs text-amber-600 font-semibold">Stok Minimum</span>
-                        <div class="w-8 h-8 rounded-lg bg-amber-500 text-white flex items-center justify-center text-xs"><i class="fa-solid fa-triangle-exclamation"></i></div>
-                    </div>
-                    <h3 class="text-2xl font-bold text-slate-800" id="dash-min">7</h3>
-                    <span class="text-[10px] text-amber-600 font-medium">Perlu Pengadaan</span>
-                </div>
+    alert("Transaksi Berhasil Diproses!");
+    cart = [];
+    renderCart();
+    renderBarang();
+    renderPOSBarang();
+    renderDashboard();
+    renderPenjualan(db.penjualan);
+    renderChart();
+}
 
-                <!-- Data Habis (Pink/Merah Muda) -->
-                <div class="bg-rose-50 border border-rose-100 p-5 rounded-2xl shadow-sm">
-                    <div class="flex justify-between items-start mb-2">
-                        <span class="text-xs text-rose-600 font-semibold">Data Habis</span>
-                        <div class="w-8 h-8 rounded-lg bg-rose-500 text-white flex items-center justify-center text-xs"><i class="fa-solid fa-box-open"></i></div>
-                    </div>
-                    <h3 class="text-2xl font-bold text-slate-800" id="dash-empty">3</h3>
-                    <span class="text-[10px] text-rose-600 font-medium">Stok Kosong</span>
-                </div>
-            </div>
+// 3 & 7. Filter Tanggal & Hapus Aksi di Transaksi
+function renderPenjualan(dataPenjualan) {
+    const tbody = document.getElementById('tbody-penjualan');
+    tbody.innerHTML = '';
 
-            <!-- Bottom Dashboard Grid (Barang Paling Laku & Donut Chart) -->
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <!-- Tabel Barang Paling Laku -->
-                <div class="lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-                    <h3 class="font-bold text-slate-800 text-sm mb-4">Barang Paling Laku</h3>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-xs text-left">
-                            <thead class="text-slate-400 border-b border-slate-100">
-                                <tr>
-                                    <th class="pb-3">#</th>
-                                    <th class="pb-3">Nama Barang</th>
-                                    <th class="pb-3 text-right">Terjual</th>
-                                </tr>
-                            </thead>
-                            <tbody id="dash-top-products" class="divide-y divide-slate-50 font-medium text-slate-700">
-                                <!-- Top items -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+    dataPenjualan.forEach((p, index) => {
+        let total = 0;
+        db.detailPenjualan.filter(d => d.IdPenjualan === p.IdPenjualan).forEach(d => {
+            total += (d.Jumlah * d.HargaJual);
+        });
 
-                <!-- Donut Chart Kategori -->
-                <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
-                    <h3 class="font-bold text-slate-800 text-sm mb-2">Kategori Terjual</h3>
-                    <div class="w-48 h-48 mx-auto">
-                        <canvas id="chartDonutCategory"></canvas>
-                    </div>
-                    <p class="text-[11px] text-center text-slate-400 mt-4">Distribusi penjualan berdasarkan kategori produk</p>
-                </div>
-            </div>
-        </div>
+        // Tanpa kolom Aksi sesuai instruksi
+        tbody.innerHTML += `
+            <tr>
+                <td>${index + 1}</td>
+                <td>${new Date(p.TanggalPenjualan).toLocaleDateString('id-ID')}</td>
+                <td>${p.IdPenjualan}</td>
+                <td>${p.MetodePembayaran || '-'}</td>
+                <td>Rp ${total.toLocaleString('id-ID')}</td>
+            </tr>
+        `;
+    });
+}
 
-        <!-- PAGE 2: DATA BARANG -->
-        <div id="sec-barang" class="hidden space-y-4">
-            <div class="flex justify-between items-center bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-                <h3 class="font-bold text-slate-800">Daftar Data Barang</h3>
-                <button onclick="openAddProductModal()" class="bg-brand-600 text-white text-xs px-4 py-2 rounded-xl font-semibold hover:bg-brand-700">
-                    + Tambah Barang
-                </button>
-            </div>
-            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                <table class="w-full text-xs text-left">
-                    <thead class="bg-slate-50 text-slate-500 font-semibold border-b">
-                        <tr>
-                            <th class="p-4">No</th>
-                            <th class="p-4">Nama Barang</th>
-                            <th class="p-4">Kategori</th>
-                            <th class="p-4">Stok</th>
-                            <th class="p-4">Harga Jual</th>
-                            <th class="p-4 text-center">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody id="table-data-barang" class="divide-y divide-slate-100 text-slate-700"></tbody>
-                </table>
-            </div>
-        </div>
+function filterPenjualan() {
+    const tglAwal = document.getElementById('tgl-awal').value;
+    const tglAkhir = document.getElementById('tgl-akhir').value;
 
-        <!-- PAGE 3: TRANSAKSI PENJUALAN -->
-        <div id="sec-transaksi" class="hidden space-y-6">
-            <!-- Filter Tanggal & Ringkasan (Persis Figma) -->
-            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-wrap gap-4 items-center justify-between">
-                <div class="flex items-center space-x-3 text-xs">
-                    <div>
-                        <label class="block text-[10px] text-slate-400 mb-1">Tanggal Awal</label>
-                        <input type="date" value="2026-10-20" class="border border-slate-200 rounded-lg p-2 bg-slate-50">
-                    </div>
-                    <span>s/d</span>
-                    <div>
-                        <label class="block text-[10px] text-slate-400 mb-1">Tanggal Akhir</label>
-                        <input type="date" value="2026-10-22" class="border border-slate-200 rounded-lg p-2 bg-slate-50">
-                    </div>
-                </div>
-                <button class="bg-brand-600 text-white text-xs px-5 py-2.5 rounded-xl font-semibold hover:bg-brand-700">
-                    <i class="fa-solid fa-magnifying-glass mr-1"></i> Cari Data
-                </button>
-            </div>
+    if (!tglAwal || !tglAkhir) {
+        alert("Pilih tanggal awal dan tanggal akhir!");
+        return;
+    }
 
-            <!-- 3 Stat Box Biru/Kuning Transaksi -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div class="bg-brand-50 border border-brand-100 p-4 rounded-2xl flex items-center space-x-4">
-                    <div class="w-10 h-10 bg-brand-600 text-white rounded-xl flex items-center justify-center"><i class="fa-solid fa-receipt"></i></div>
-                    <div>
-                        <span class="text-xs text-brand-600 font-medium">Total Transaksi</span>
-                        <h4 class="text-xl font-bold text-slate-800" id="trans-stat-count">48</h4>
-                    </div>
-                </div>
-                <div class="bg-emerald-50 border border-emerald-100 p-4 rounded-2xl flex items-center space-x-4">
-                    <div class="w-10 h-10 bg-emerald-600 text-white rounded-xl flex items-center justify-center"><i class="fa-solid fa-money-bill-wave"></i></div>
-                    <div>
-                        <span class="text-xs text-emerald-600 font-medium">Total Penjualan</span>
-                        <h4 class="text-xl font-bold text-slate-800" id="trans-stat-total">Rp 4.489.000</h4>
-                    </div>
-                </div>
-                <div class="bg-amber-50 border border-amber-100 p-4 rounded-2xl flex items-center space-x-4">
-                    <div class="w-10 h-10 bg-amber-500 text-white rounded-xl flex items-center justify-center"><i class="fa-solid fa-chart-line"></i></div>
-                    <div>
-                        <span class="text-xs text-amber-600 font-medium">Rata-Rata Per Transaksi</span>
-                        <h4 class="text-xl font-bold text-slate-800" id="trans-stat-avg">Rp 89.000</h4>
-                    </div>
-                </div>
-            </div>
+    const filtered = db.penjualan.filter(p => {
+        const t = p.TanggalPenjualan.split('T')[0];
+        return t >= tglAwal && t <= tglAkhir;
+    });
 
-            <!-- Tabel Transaksi Penjualan -->
-            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                <table class="w-full text-xs text-left">
-                    <thead class="bg-slate-50 text-slate-500 border-b">
-                        <tr>
-                            <th class="p-4">No</th>
-                            <th class="p-4">Tanggal</th>
-                            <th class="p-4">No. Transaksi</th>
-                            <th class="p-4">Pembayaran</th>
-                            <th class="p-4">Total</th>
-                            <th class="p-4 text-center">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody id="table-transaksi-penjualan" class="divide-y divide-slate-100 text-slate-700"></tbody>
-                </table>
-            </div>
-        </div>
+    renderPenjualan(filtered);
+}
 
-        <!-- PAGE 4: PERSEDIAAN (PERSIS FIGMA) -->
-        <div id="sec-persediaan" class="hidden space-y-6">
-            <!-- 3 Top Cards Persediaan -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div class="bg-emerald-50 border border-emerald-100 p-4 rounded-2xl flex items-center space-x-4">
-                    <div class="w-10 h-10 bg-emerald-500 text-white rounded-xl flex items-center justify-center text-lg"><i class="fa-solid fa-boxes-stacked"></i></div>
-                    <div>
-                        <span class="text-xs text-emerald-600 font-semibold">Total Stok Barang</span>
-                        <h4 class="text-xl font-bold text-slate-800" id="stok-stat-total">48 Items</h4>
-                    </div>
-                </div>
-                <div class="bg-amber-50 border border-amber-100 p-4 rounded-2xl flex items-center space-x-4">
-                    <div class="w-10 h-10 bg-amber-500 text-white rounded-xl flex items-center justify-center text-lg"><i class="fa-solid fa-coins"></i></div>
-                    <div>
-                        <span class="text-xs text-amber-600 font-semibold">Stok Minimum</span>
-                        <h4 class="text-xl font-bold text-slate-800">Rp 4.489.000</h4>
-                    </div>
-                </div>
-                <div class="bg-rose-50 border border-rose-100 p-4 rounded-2xl flex items-center space-x-4">
-                    <div class="w-10 h-10 bg-rose-500 text-white rounded-xl flex items-center justify-center text-lg"><i class="fa-solid fa-triangle-exclamation"></i></div>
-                    <div>
-                        <span class="text-xs text-rose-600 font-semibold">Estimasi Kebutuhan</span>
-                        <h4 class="text-xl font-bold text-slate-800">Rp 89.000</h4>
-                    </div>
-                </div>
-            </div>
+// 4. Grafik Harian, Bulanan, Tahunan & Ekspor Excel
+function renderChart() {
+    const tipe = document.getElementById('filter-grafik').value;
+    const ctx = document.getElementById('salesChart').getContext('2d');
 
-            <!-- Tabel Persediaan dengan Badge Status Pill -->
-            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-                <div class="p-4 border-b border-slate-100 font-bold text-sm text-slate-800">Daftar Persediaan Barang</div>
-                <table class="w-full text-xs text-left">
-                    <thead class="bg-slate-50 text-slate-500 border-b">
-                        <tr>
-                            <th class="p-4">No</th>
-                            <th class="p-4">Nama Barang</th>
-                            <th class="p-4">Kategori</th>
-                            <th class="p-4">Stok</th>
-                            <th class="p-4">Stok Minimum</th>
-                            <th class="p-4 text-center">Status</th>
-                        </tr>
-                    </thead>
-                    <tbody id="table-persediaan-barang" class="divide-y divide-slate-100 text-slate-700"></tbody>
-                </table>
-            </div>
-        </div>
+    let labels = [];
+    let dataValues = [];
 
-        <!-- PAGE 5: LAPORAN (PERSIS FIGMA) -->
-        <div id="sec-laporan" class="hidden space-y-6">
-            <!-- Filter & Grafik Penjualan Batang -->
-            <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-                <h3 class="font-bold text-slate-800 text-sm mb-4">Grafik Penjualan Harian</h3>
-                <canvas id="chartSalesBar" height="120"></canvas>
-            </div>
-        </div>
+    if (tipe === 'harian') {
+        labels = ['20 Oct', '21 Oct', '22 Oct'];
+        dataValues = [182000, 80000, 106000];
+    } else if (tipe === 'bulanan') {
+        labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct'];
+        dataValues = [1200000, 1500000, 1100000, 1800000, 2000000, 1700000, 2200000, 2100000, 1900000, 368000];
+    } else if (tipe === 'tahunan') {
+        labels = ['2024', '2025', '2026'];
+        dataValues = [15000000, 22000000, 17468000];
+    }
 
-    </main>
+    if (chartInstance) chartInstance.destroy();
 
-    <!-- MODAL POS KASIR (TRANSAKSI BARU) -->
-    <div id="modal-pos" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl shadow-xl max-w-4xl w-full p-6 flex flex-col max-h-[90vh]">
-            <div class="flex justify-between items-center border-b pb-3 mb-4">
-                <h3 class="font-bold text-lg text-slate-800"><i class="fa-solid fa-cart-plus text-brand-600 mr-2"></i>Kasir POS Transaksi</h3>
-                <button onclick="closePosModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-xl"></i></button>
-            </div>
-            
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 overflow-y-auto pr-1">
-                <!-- Katalog Produk -->
-                <div class="space-y-3">
-                    <h4 class="font-semibold text-xs text-slate-500">Pilih Barang:</h4>
-                    <div id="pos-product-list" class="space-y-2 max-h-80 overflow-y-auto"></div>
-                </div>
+    chartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Penjualan (Rp)',
+                data: dataValues,
+                backgroundColor: '#3498db'
+            }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+    });
+}
 
-                <!-- Keranjang -->
-                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col justify-between">
-                    <div>
-                        <h4 class="font-semibold text-xs text-slate-500 mb-2">Keranjang Belanja:</h4>
-                        <div id="pos-cart-list" class="space-y-2 text-xs divide-y divide-slate-200 max-h-48 overflow-y-auto"></div>
-                    </div>
-                    <div class="border-t pt-3 mt-4 space-y-2">
-                        <div class="flex justify-between font-bold text-sm">
-                            <span>Total Bayar:</span>
-                            <span text-brand-600 id="pos-total-pay">Rp 0</span>
-                        </div>
-                        <div class="text-xs">
-                            <label class="block font-medium mb-1">Metode Pembayaran:</label>
-                            <select id="pos-method" class="w-full border rounded-lg p-2 bg-white">
-                                <option value="Tunai">Tunai</option>
-                                <option value="QRIS">QRIS</option>
-                                <option value="Kartu">Kartu Debit/Kredit</option>
-                            </select>
-                        </div>
-                        <button onclick="checkoutPos()" class="w-full bg-brand-600 text-white font-semibold py-2.5 rounded-xl hover:bg-brand-700 mt-2">
-                            Simpan Transaksi & Kurangi Stok
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+function exportToExcel() {
+    let excelData = [];
+    db.penjualan.forEach((p, idx) => {
+        let total = 0;
+        db.detailPenjualan.filter(d => d.IdPenjualan === p.IdPenjualan).forEach(d => {
+            total += (d.Jumlah * d.HargaJual);
+        });
 
-    <!-- MODAL TAMBAH BARANG -->
-    <div id="modal-add-product" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 space-y-4">
-            <h3 class="font-bold text-lg border-b pb-2">Tambah Barang Baru</h3>
-            <form onsubmit="saveProduct(event)" class="space-y-3 text-xs">
-                <div>
-                    <label class="block font-medium mb-1">Kode Barang</label>
-                    <input type="text" id="add-id" required placeholder="B006" class="w-full border rounded-lg p-2">
-                </div>
-                <div>
-                    <label class="block font-medium mb-1">Nama Barang</label>
-                    <input type="text" id="add-nama" required placeholder="Shampo Kucing" class="w-full border rounded-lg p-2">
-                </div>
-                <div>
-                    <label class="block font-medium mb-1">Kategori</label>
-                    <select id="add-kategori" class="w-full border rounded-lg p-2 bg-slate-50">
-                        <option value="K001">Makanan Hewan</option>
-                        <option value="K002">Pasir Kucing</option>
-                        <option value="K003">Aksesori</option>
-                        <option value="K004">Vitamin</option>
-                        <option value="K005">Perawatan</option>
-                    </select>
-                </div>
-                <div class="grid grid-cols-2 gap-2">
-                    <div>
-                        <label class="block font-medium mb-1">Harga Beli</label>
-                        <input type="number" id="add-hbeli" required class="w-full border rounded-lg p-2">
-                    </div>
-                    <div>
-                        <label class="block font-medium mb-1">Harga Jual</label>
-                        <input type="number" id="add-hjual" required class="w-full border rounded-lg p-2">
-                    </div>
-                </div>
-                <div class="grid grid-cols-2 gap-2">
-                    <div>
-                        <label class="block font-medium mb-1">Stok Awal</label>
-                        <input type="number" id="add-stok" required value="10" class="w-full border rounded-lg p-2">
-                    </div>
-                    <div>
-                        <label class="block font-medium mb-1">Stok Min</label>
-                        <input type="number" id="add-stokmin" required value="3" class="w-full border rounded-lg p-2">
-                    </div>
-                </div>
-                <div class="flex space-x-2 pt-2">
-                    <button type="submit" class="flex-1 bg-brand-600 text-white py-2 rounded-xl font-semibold">Simpan</button>
-                    <button type="button" onclick="closeAddProductModal()" class="flex-1 bg-slate-200 text-slate-700 py-2 rounded-xl font-semibold">Batal</button>
-                </div>
-            </form>
-        </div>
-    </div>
+        excelData.push({
+            No: idx + 1,
+            "Tanggal Penjualan": p.TanggalPenjualan,
+            "No. Transaksi": p.IdPenjualan,
+            "Metode Pembayaran": p.MetodePembayaran,
+            "Total Penjualan": total
+        });
+    });
 
-    <!-- LOGICAL SCRIPT & DATABASE -->
-    <script>
-        // Database Seed
-        let products = [
-            { IdBarang: 'B001', NamaBarang: 'Whiskas Adult 1 kg', Kategori: 'Makanan', Stok: 11, StokMinimum: 5, HargaJual: 45000, HargaBeli: 35000 },
-            { IdBarang: 'B002', NamaBarang: 'Royal Canin Adult 2 kg', Kategori: 'Makanan', Stok: 18, StokMinimum: 5, HargaJual: 120000, HargaBeli: 95000 },
-            { IdBarang: 'B003', NamaBarang: 'Pro Plan Adult 2 kg', Kategori: 'Makanan', Stok: 20, StokMinimum: 4, HargaJual: 130000, HargaBeli: 105000 },
-            { IdBarang: 'B004', NamaBarang: 'Pasir Kucing Gumpal 5L', Kategori: 'Pasir', Stok: 12, StokMinimum: 4, HargaJual: 25000, HargaBeli: 18000 },
-            { IdBarang: 'B005', NamaBarang: 'Dry Cat Food Tuna 1 kg', Kategori: 'Makanan', Stok: 15, StokMinimum: 5, HargaJual: 40000, HargaBeli: 30000 },
-            { IdBarang: 'B006', NamaBarang: 'Shampo Kucing Anti Kutu', Kategori: 'Perawatan', Stok: 8, StokMinimum: 3, HargaJual: 35000, HargaBeli: 22000 },
-            { IdBarang: 'B007', NamaBarang: 'Kalung Kucing Lonceng', Kategori: 'Aksesori', Stok: 14, StokMinimum: 3, HargaJual: 16000, HargaBeli: 10000 },
-            { IdBarang: 'B008', NamaBarang: 'Vitamin Kucing Gel', Kategori: 'Vitamin', Stok: 10, StokMinimum: 3, HargaJual: 30000, HargaBeli: 22000 }
-        ];
+    const worksheet = XLSX.utils.json_to_sheet(excelData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Laporan Penjualan");
 
-        let sales = [
-            { No: 1, Tanggal: '24 Oktober 2026', NoTrans: 'J001', Pembayaran: 'QRIS', Total: 45000 },
-            { No: 2, Tanggal: '24 Oktober 2026', NoTrans: 'J002', Pembayaran: 'Tunai', Total: 120000 },
-            { No: 3, Tanggal: '23 Oktober 2026', NoTrans: 'J003', Pembayaran: 'Kartu', Total: 25000 },
-            { No: 4, Tanggal: '22 Oktober 2026', NoTrans: 'J004', Pembayaran: 'QRIS', Total: 130000 },
-            { No: 5, Tanggal: '21 Oktober 2026', NoTrans: 'J005', Pembayaran: 'Tunai', Total: 70000 }
-        ];
-
-        let posCart = [];
-
-        function formatRp(val) {
-            return 'Rp ' + val.toLocaleString('id-ID');
-        }
-
-        function switchTab(tab) {
-            document.querySelectorAll('.sidebar-btn').forEach(btn => btn.classList.remove('sidebar-item-active'));
-            document.getElementById(`nav-${tab}`).classList.add('sidebar-item-active');
-
-            ['dashboard', 'barang', 'transaksi', 'persediaan', 'laporan'].forEach(sec => {
-                document.getElementById(`sec-${sec}`).classList.add('hidden');
-            });
-            document.getElementById(`sec-${tab}`).classList.remove('hidden');
-
-            const titles = {
-                dashboard: ['Dashboard', 'Selamat datang kembali di panel kontrol PetShop!'],
-                barang: ['Data Barang', 'Manajemen katalog produk dan harga jual.'],
-                transaksi: ['Transaksi Penjualan', 'Riwayat transaksi penjualan pelanggan.'],
-                persediaan: ['Persediaan Barang', 'Monitoring stok dan peringatan stok minimum.'],
-                laporan: ['Laporan Penjualan', 'Grafik performa penjualan bisnis.']
-            };
-            document.getElementById('page-title').innerText = titles[tab][0];
-            document.getElementById('page-subtitle').innerText = titles[tab][1];
-
-            if (tab === 'laporan') renderLaporanChart();
-        }
-
-        function renderData() {
-            // Render Table Barang
-            const tbBarang = document.getElementById('table-data-barang');
-            tbBarang.innerHTML = '';
-            products.forEach((p, idx) => {
-                tbBarang.innerHTML += `
-                    <tr class="hover:bg-slate-50">
-                        <td class="p-4 font-semibold">${idx + 1}</td>
-                        <td class="p-4 font-bold text-slate-800">${p.NamaBarang}</td>
-                        <td class="p-4">${p.Kategori}</td>
-                        <td class="p-4 font-semibold">${p.Stok}</td>
-                        <td class="p-4 text-brand-600 font-bold">${formatRp(p.HargaJual)}</td>
-                        <td class="p-4 text-center space-x-2">
-                            <button class="text-brand-600 hover:text-brand-800"><i class="fa-solid fa-pen-to-square"></i></button>
-                            <button class="text-rose-500 hover:text-rose-700"><i class="fa-solid fa-trash"></i></button>
-                        </td>
-                    </tr>
-                `;
-            });
-
-            // Render Persediaan
-            const tbPersediaan = document.getElementById('table-persediaan-barang');
-            tbPersediaan.innerHTML = '';
-            products.forEach((p, idx) => {
-                let badge = '<span class="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-[10px] font-bold">Aman</span>';
-                if (p.Stok === 0) badge = '<span class="bg-rose-100 text-rose-700 px-3 py-1 rounded-full text-[10px] font-bold">Habis</span>';
-                else if (p.Stok <= p.StokMinimum) badge = '<span class="bg-amber-100 text-amber-700 px-3 py-1 rounded-full text-[10px] font-bold">Minimum</span>';
-
-                tbPersediaan.innerHTML += `
-                    <tr class="hover:bg-slate-50">
-                        <td class="p-4">${idx + 1}</td>
-                        <td class="p-4 font-bold">${p.NamaBarang}</td>
-                        <td class="p-4">${p.Kategori}</td>
-                        <td class="p-4 font-bold">${p.Stok}</td>
-                        <td class="p-4 text-slate-400">${p.StokMinimum}</td>
-                        <td class="p-4 text-center">${badge}</td>
-                    </tr>
-                `;
-            });
-
-            // Render Transaksi
-            const tbTrans = document.getElementById('table-transaksi-penjualan');
-            tbTrans.innerHTML = '';
-            sales.forEach((s) => {
-                tbTrans.innerHTML += `
-                    <tr class="hover:bg-slate-50">
-                        <td class="p-4 font-semibold">${s.No}</td>
-                        <td class="p-4">${s.Tanggal}</td>
-                        <td class="p-4 font-bold text-brand-600">${s.NoTrans}</td>
-                        <td class="p-4"><span class="bg-slate-100 px-2 py-1 rounded font-semibold text-[10px]">${s.Pembayaran}</span></td>
-                        <td class="p-4 font-bold">${formatRp(s.Total)}</td>
-                        <td class="p-4 text-center"><button class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-eye"></i></button></td>
-                    </tr>
-                `;
-            });
-
-            // Top Products Dashboard
-            const topTb = document.getElementById('dash-top-products');
-            topTb.innerHTML = '';
-            products.slice(0, 5).forEach((p, idx) => {
-                topTb.innerHTML += `
-                    <tr>
-                        <td class="py-2.5">${idx + 1}</td>
-                        <td class="py-2.5 font-semibold text-slate-800">${p.NamaBarang}</td>
-                        <td class="py-2.5 text-right font-bold text-brand-600">${15 - idx * 2} pcs</td>
-                    </tr>
-                `;
-            });
-        }
-
-        // POS Kasir Modal
-        function openPosModal() {
-            document.getElementById('modal-pos').classList.remove('hidden');
-            renderPosCatalog();
-        }
-        function closePosModal() {
-            document.getElementById('modal-pos').classList.add('hidden');
-        }
-
-        function renderPosCatalog() {
-            const container = document.getElementById('pos-product-list');
-            container.innerHTML = '';
-            products.forEach(p => {
-                container.innerHTML += `
-                    <div class="p-2 border rounded-xl flex justify-between items-center bg-white">
-                        <div>
-                            <p class="font-bold text-slate-800">${p.NamaBarang}</p>
-                            <p class="text-brand-600 font-semibold">${formatRp(p.HargaJual)} (Stok: ${p.Stok})</p>
-                        </div>
-                        <button onclick="addPosCart('${p.IdBarang}')" class="bg-brand-50 text-brand-600 hover:bg-brand-600 hover:text-white px-3 py-1 rounded-lg text-xs font-bold transition-colors">
-                            + Tambah
-                        </button>
-                    </div>
-                `;
-            });
-        }
-
-        function addPosCart(id) {
-            const p = products.find(prod => prod.IdBarang === id);
-            const exist = posCart.find(c => c.IdBarang === id);
-            if (exist) {
-                if (exist.Qty + 1 > p.Stok) { alert('[SIMULASI TRIGGER SQL] Stok tidak mencukupi!'); return; }
-                exist.Qty++;
-            } else {
-                posCart.push({ IdBarang: p.IdBarang, NamaBarang: p.NamaBarang, HargaJual: p.HargaJual, Qty: 1 });
-            }
-            renderPosCart();
-        }
-
-        function renderPosCart() {
-            const container = document.getElementById('pos-cart-list');
-            container.innerHTML = '';
-            let total = 0;
-            posCart.forEach(item => {
-                const sub = item.Qty * item.HargaJual;
-                total += sub;
-                container.innerHTML += `
-                    <div class="py-1 flex justify-between items-center">
-                        <div>
-                            <p class="font-bold">${item.NamaBarang}</p>
-                            <p class="text-slate-400">${item.Qty} x ${formatRp(item.HargaJual)}</p>
-                        </div>
-                        <p class="font-bold text-slate-800">${formatRp(sub)}</p>
-                    </div>
-                `;
-            });
-            document.getElementById('pos-total-pay').innerText = formatRp(total);
-        }
-
-        function checkoutPos() {
-            if (posCart.length === 0) return alert('Keranjang kosong!');
-            // Deduct Stock
-            posCart.forEach(item => {
-                const p = products.find(prod => prod.IdBarang === item.IdBarang);
-                p.Stok -= item.Qty;
-            });
-            alert('Transaksi Berhasil disimpan ke Database!');
-            posCart = [];
-            closePosModal();
-            renderData();
-        }
-
-        function openAddProductModal() { document.getElementById('modal-add-product').classList.remove('hidden'); }
-        function closeAddProductModal() { document.getElementById('modal-add-product').classList.add('hidden'); }
-
-        function saveProduct(e) {
-            e.preventDefault();
-            products.push({
-                IdBarang: document.getElementById('add-id').value,
-                NamaBarang: document.getElementById('add-nama').value,
-                Kategori: 'Umum',
-                Stok: parseInt(document.getElementById('add-stok').value),
-                StokMinimum: parseInt(document.getElementById('add-stokmin').value),
-                HargaBeli: parseInt(document.getElementById('add-hbeli').value),
-                HargaJual: parseInt(document.getElementById('add-hjual').value)
-            });
-            closeAddProductModal();
-            renderData();
-        }
-
-        function renderDonutChart() {
-            const ctx = document.getElementById('chartDonutCategory').getContext('2d');
-            new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: ['Makanan', 'Aksesori', 'Pasir', 'Vitamin'],
-                    datasets: [{
-                        data: [45, 20, 25, 10],
-                        backgroundColor: ['#2563eb', '#38bdf8', '#f59e0b', '#ec4899']
-                    }]
-                },
-                options: { plugins: { legend: { position: 'bottom' } } }
-            });
-        }
-
-        function renderLaporanChart() {
-            const ctx = document.getElementById('chartSalesBar').getContext('2d');
-            new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: ['16 Okt', '17 Okt', '18 Okt', '19 Okt', '20 Okt', '21 Okt', '22 Okt', '23 Okt', '24 Okt', '25 Okt'],
-                    datasets: [{
-                        label: 'Penjualan (Rp)',
-                        data: [400000, 700000, 1400000, 500000, 800000, 300000, 600000, 1100000, 890000, 650000],
-                        backgroundColor: '#2563eb',
-                        borderRadius: 8
-                    }]
-                },
-                options: { responsive: true, plugins: { legend: { display: false } } }
-            });
-        }
-
-        window.onload = function() {
-            renderData();
-            renderDonutChart();
-        };
-    </script>
-</body>
-</html>
+    XLSX.writeFile(workbook, "Laporan_Penjualan_Petshop_PawPaw.xlsx");
+}
