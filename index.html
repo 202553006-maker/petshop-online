@@ -29,6 +29,84 @@
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
         body { display: flex; background-color: var(--bg-body); color: var(--text-dark); min-height: 100vh; }
 
+        /* Style Tambahan Halaman Login Overlay */
+        #login-page {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: var(--bg-body);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+
+        .login-card {
+            background: #ffffff;
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 32px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .login-header .brand {
+            justify-content: center;
+            margin-bottom: 8px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 0.9rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .form-control:focus {
+            border-color: var(--primary);
+        }
+
+        .btn-login {
+            width: 100%;
+            padding: 12px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            margin-top: 8px;
+            transition: background 0.2s;
+        }
+
+        .btn-login:hover {
+            background: #2563eb;
+        }
+
         /* Sidebar Design */
         aside {
             width: 250px;
@@ -127,6 +205,41 @@
 </head>
 <body>
 
+    <!-- HALAMAN LOGIN (OVERLAY) -->
+    <div id="login-page">
+        <div class="login-card">
+            <div class="login-header">
+                <div class="brand">
+                    <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg>
+                    Petshop PawPaw
+                </div>
+                <p style="font-size: 0.85rem; color: var(--text-muted);">Silakan login untuk mengakses sistem</p>
+            </div>
+
+            <form onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label>Pilih Pengguna & Role:</label>
+                    <select id="loginSelectUser" class="form-control" onchange="autoFillLoginInfo(this.value)">
+                        <option value="andi">Andi Saputra (Pemilik)</option>
+                        <option value="siti">Siti Aminah (Kasir)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Username:</label>
+                    <input type="text" id="loginUsername" class="form-control" value="andi" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Password:</label>
+                    <input type="password" id="loginPassword" class="form-control" value="••••••••" required>
+                </div>
+
+                <button type="submit" class="btn-login">Masuk ke Sistem</button>
+            </form>
+        </div>
+    </div>
+
     <!-- Sidebar Navigation -->
     <aside>
         <div>
@@ -152,7 +265,10 @@
                 <button id="nav-laporan" onclick="switchTab('laporan')">📈 Laporan</button>
             </nav>
         </div>
-        <div style="font-size: 0.75rem; color: var(--text-muted); text-align: center;">Petshop PawPaw v1.0</div>
+        <div>
+            <button onclick="logoutApp()" style="width: 100%; padding: 8px; background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.8rem; margin-bottom: 12px;">🔒 Logout</button>
+            <div style="font-size: 0.75rem; color: var(--text-muted); text-align: center;">Petshop PawPaw v1.0</div>
+        </div>
     </aside>
 
     <!-- Main Content Area -->
@@ -344,8 +460,8 @@
                 { IdBarang: 'B005', NamaBarang: 'Vitamin Kucing', IdKategori: 'K004', HargaBeli: 22000, HargaJual: 30000, Stok: 10, StokMinimum: 3 }
             ],
             pengguna: [
-                { IdPengguna: 'U001', NamaPengguna: 'Andi Saputra', Peran: 'Pemilik' },
-                { IdPengguna: 'U002', NamaPengguna: 'Siti Aminah', Peran: 'Kasir' }
+                { IdPengguna: 'U001', NamaPengguna: 'Andi Saputra', Username: 'andi', Peran: 'Pemilik' },
+                { IdPengguna: 'U002', NamaPengguna: 'Siti Aminah', Username: 'siti', Peran: 'Kasir' }
             ],
             penjualan: [
                 { IdPenjualan: 'J001', TanggalPenjualan: '2026-10-20T09:00:00', IdPengguna: 'U002', MetodePembayaran: 'Tunai' },
@@ -383,6 +499,39 @@
             renderPenjualan(db.penjualan);
             renderStokView();
             initCharts();
+        }
+
+        // Fungsi Penanganan Halaman Login
+        function autoFillLoginInfo(username) {
+            document.getElementById('loginUsername').value = username;
+        }
+
+        function handleLogin(event) {
+            event.preventDefault();
+            const usernameInput = document.getElementById('loginUsername').value.toLowerCase();
+            
+            // Cari pengguna berdasarkan tabel database SQL Pengguna (db.pengguna)
+            const user = db.pengguna.find(u => u.Username.toLowerCase() === usernameInput);
+            
+            if (user) {
+                currentRole = user.Peran;
+                document.getElementById('userRole').value = user.Peran;
+                document.getElementById('currentRoleBadge').innerText = user.Peran;
+                
+                // Sembunyikan halaman login overlay
+                document.getElementById('login-page').style.display = 'none';
+                
+                // Inisialisasi ulang tampilan aplikasi sesuai hak akses pengguna
+                applyRolePermissions();
+            } else {
+                alert('Username tidak ditemukan! Silakan gunakan "andi" (Pemilik) atau "siti" (Kasir).');
+            }
+        }
+
+        function logoutApp() {
+            if (confirm("Apakah Anda yakin ingin keluar dari sistem?")) {
+                document.getElementById('login-page').style.display = 'flex';
+            }
         }
 
         // Poin 5: Pemisahan Role Owner dan Kasir
